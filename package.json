@@ -1,0 +1,18 @@
+{
+  "name": "chefkoch_scrap",
+  "version": "1.0.0",
+  "description": "a script which gathers weekly recipe's",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon server/server.js"
+  },
+  "keywords": [],
+  "author": "Oskar1504",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^0.24.0",
+    "express": "^4.17.2",
+    "node-html-parser": "^5.2.0",
+    "nodemon": "^2.0.15"
+  }
+}
