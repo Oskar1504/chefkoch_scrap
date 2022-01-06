@@ -138,6 +138,16 @@ app.get('/api/testParams', async function (req, res) {
     })
 })
 
+
+app.get('/api/getCategories', async function (req, res) {
+    res.json({
+        status:200,
+        categorie: ["schnelle-alltagskueche", "gesunde-ernaehrung","vegetarische-vielfalt","low-carb"],
+        infos: []
+    })
+})
+
+
 app.get('/', async function (req, res) {
     res.json({
         status: "hallo"
