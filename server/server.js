@@ -8,72 +8,141 @@ const app = express()
 app.use(express.json())
 
 
-app.get('/api/main', async function (req, res) {
-    let hostUrl = "https://www.chefkoch.de/wochenplan",
-        categorie = "schnelle-alltagskueche",
-        week = "1",
-        url = `${hostUrl}/${categorie}/${week}`
-    await axios.get(url)
-        .then(async function (response) {
-            // handle success
-            console.log(url , " | Success:", response.status);
+app.get('/api/getWeekRecipes', async function (req, res) {
 
-            let root = HTMLParser.parse(response.data);
+    let infos = []
 
-            let days = [...root.querySelectorAll("ul.wr-card-list .wr-card-list__item")]
-            let o = []
-            for(let day of days){
-                let recipe_link = day.querySelectorAll(".wr-card__link")[0].getAttribute("href"),
-                    recipe_url = `https://www.chefkoch.de${recipe_link}`,
-                    more_data = {}
-                await axios.get(recipe_url)
-                    .then(async function (response) {
-                        console.log(recipe_url , " | Success:", response.status);
-                        let root_recipe = HTMLParser.parse(response.data);
-                        more_data = {
-                            ingredients: [],
-                            description: ""
-                        }
-                        for(let ingredient of [...root_recipe.querySelectorAll("table.ingredients tr")]){
-                            more_data.ingredients.push(sanitizeText(ingredient.text))
-                        }
+    // week validation
+    let now = new Date();
+    let onejan = new Date(now.getFullYear(), 0, 1);
+    let week_actual = Math.ceil((((now.getTime() - onejan.getTime()) / 86400000) + onejan.getDay() + 1) / 7)-1;
 
-                        more_data.description = root_recipe.querySelector("[data-vars-tracking-title='Zubereitung']").parentNode.querySelector("div.ds-box").innerText
+    let week_input = req.query.week?req.query.week:week_actual;
 
+    if(week_actual-week_input >= 3 || week_actual-week_input <= -3){
+        infos.push("week not matching actual week. chefkoch.de only forecast 2 weeks")
+        week_input = week_actual + 2
+    }
 
+    // categorie validation
+    let valid_cat = ["schnelle-alltagskueche", "gesunde-ernaehrung","vegetarische-vielfalt","low-carb"]
+    let cat_input = req.query.categorie?req.query.categorie:valid_cat[0];
+
+    if(!valid_cat.includes(cat_input)){
+        cat_input = valid_cat[0];
+        infos.push("Categorie isnt valid.Using default categorie: " +valid_cat[0] )
+    }
+
+    //check if wekk already scrapped
+    if(!fs.existsSync(__dirname + `/data/${cat_input}_${week_input}.json`)) {
+
+        let hostUrl = "https://www.chefkoch.de/wochenplan",
+            url = `${hostUrl}/${cat_input}/${week_input}`
+        await axios.get(url)
+            .then(async function (response) {
+                console.log(url, " | Success:", response.status);
+                let root = HTMLParser.parse(response.data);
+                let days = [...root.querySelectorAll("ul.wr-card-list .wr-card-list__item")]
+                let recipes = []
+
+                for (let day of days) {
+                    let recipe_link = day.querySelectorAll(".wr-card__link")[0].getAttribute("href"),
+                        recipe_url = `https://www.chefkoch.de${recipe_link}`,
+                        more_data = {}
+                    await axios.get(recipe_url)
+                        .then(async function (response) {
+                            console.log(recipe_url, " | Success:", response.status);
+                            let root_recipe = HTMLParser.parse(response.data);
+                            more_data = {
+                                ingredients: [],
+                                description: ""
+                            }
+                            for (let ingredient of [...root_recipe.querySelectorAll("table.ingredients tr")]) {
+                                more_data.ingredients.push(sanitizeText(ingredient.text))
+                            }
+
+                            more_data.description = root_recipe.querySelector("[data-vars-tracking-title='Zubereitung']").parentNode.querySelector("div.ds-box").innerText
+
+                        })
+                        .catch(function (error) {
+                            infos.push(error.toString())
+                        })
+
+                    recipes.push({
+                        title: day.querySelectorAll(".wr-card__title")[0].text,
+                        day: sanitizeText(day.querySelectorAll(".wr-card__day")[0].text),
+                        link: recipe_link,
+                        duration: sanitizeText(day.querySelectorAll(".wr-meta__item--clock")[0].text),
+                        more_data: more_data
                     })
-                    .catch(function (error) {
-                        more_data = {error:error.toString()}
-                    })
 
-                o.push({
-                    title: day.querySelectorAll(".wr-card__title")[0].text,
-                    day: sanitizeText(day.querySelectorAll(".wr-card__day")[0].text),
-                    link: recipe_link,
-                    duration: sanitizeText(day.querySelectorAll(".wr-meta__item--clock")[0].text),
-                    more_data: more_data
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+
+                // store data
+                fs.writeFileSync(__dirname + `/data/${cat_input}_${week_input}.json`, JSON.stringify(recipes, null, 4))
+
+                res.json({
+                    status: 200,
+                    req_status: response.status,
+                    recipes: recipes,
+                    infos: infos
                 })
-
-                await new Promise(resolve => setTimeout(resolve, 1000));
-            }
-
-
-            res.json({
-                status: 200,
-                req_status: response.status,
-                days: o
             })
+            .catch(function (error) {
+                // handle error
+                console.log(error.toString());
+                res.json({error: error.toString()})
+            })
+    }else{
+        infos.push("Week already scrapped. Using local storage")
+        res.json({
+            status: 200,
+            recipes: JSON.parse(fs.readFileSync(__dirname + `/data/${cat_input}_${week_input}.json`)),
+            infos: infos
         })
-        .catch(function (error) {
-            // handle error
-            console.log(error.toString());
-            res.json({error:error.toString()})
-        })
-
+    }
 })
 
+app.get('/api/testParams', async function (req, res) {
 
+    let infos = []
 
+    // week validation
+    let now = new Date();
+    let onejan = new Date(now.getFullYear(), 0, 1);
+    let week_actual = Math.ceil((((now.getTime() - onejan.getTime()) / 86400000) + onejan.getDay() + 1) / 7)-1;
+
+    let week_input = req.query.week?req.query.week:week_actual;
+
+    if(week_actual-week_input >= 3 || week_actual-week_input <= -3){
+        infos.push("week not matching actual week. chefkoch.de only forecast 2 weeks")
+        week_input = week_actual + 2
+    }
+
+    // categorie validation
+    let valid_cat = ["schnelle-alltagskueche", "gesunde-ernaehrung","vegetarische-vielfalt","low-carb"]
+    let cat_input = req.query.categorie?req.query.categorie:valid_cat[0];
+
+    if(!valid_cat.includes(cat_input)){
+        cat_input = valid_cat[0];
+        infos.push("Categorie isnt valid.Using default categorie: " +valid_cat[0] )
+    }
+
+    res.json({
+        categorie: req.params.categorie,
+        week_input: week_input,
+        week_actual: week_actual,
+        cat_input: cat_input,
+        infos: infos
+    })
+})
+
+app.get('/', async function (req, res) {
+    res.json({
+        status: "hallo"
+    })
+})
 
 app.listen(42069)
 
