@@ -6,7 +6,17 @@ build upon an express application so u could host it as api after gathering the 
 i'll planned to use the data as data source for discord an telegram bot's
 
 ## usage
-/api/main -> gathers all recipes from firt week in 2022 (based on the url in the function)
+/api/main -> gathers all recipes from first week in 2022 (based on the url in the function)
+
+## planned
+- dynamic api routes
+    - request specific days in weeks
+    - request specific week
+    - request specific recipe
+    - request different categories
+- when week already scraped use intern storage
+    - big json file used 4 storage
+- store weeks
 
 ## Installation
 clone repository
