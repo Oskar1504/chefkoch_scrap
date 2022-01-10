@@ -1,32 +1,27 @@
 # chefkoch_scrap
-a script which gathers weekly recipe's
+- a script which gathers weekly recipe's
+- build upon an express application so u could host it as api after gathering the recipes.
 
-build upon an express application so u could host it as api after gathering the recipes.
 
-i'll planned to use the data as data source for discord an telegram bot's
+## Applications using this API
+- [Chefkoch Twitter bot](https://github.com/Oskar1504/chefkoch_twitter_bot.git)
+- [Chefkoch Telegram bot](https://github.com/Oskar1504/chefkoch_telegram_bot.git)
+- [Chefkoch Discord bot](https://github.com/Oskar1504/chefkoch_discord_bot.git)
 
-## usage
-/api/main -> gathers all recipes from first week in 2022 (based on the url in the function)
+## Usage
+- /api/getWeekRecipes -> gatheres recipes from specified week and categorie
+    - return recipes
+    - if week already gathered uses local storage
+- /api/getTodaysRecipes -> returns todays recipes from all 4 categories
 
-## planned
-- dynamic api routes
-    - request specific days in weeks
-    - request specific week
-    - request specific recipe
-    - request different categories
-- when week already scraped use intern storage
-    - big json file used 4 storage
-- store weeks
 
 ## Installation
-clone repository
-
-run in development mode (nodemon)
+- clone repository
+- run in development mode (nodemon)
 ```bash
 npm run dev
 ```
-
-just run it
+- just run it
 ```bash
 node server/server.js
 ```
