@@ -1,3 +1,6 @@
 /node_modules/
-/data/*/*
+server/data/schnelle-alltagskueche/*
+server/data/gesunde-ernaehrung/*
+server/data/vegetarische-vielfalt/*
+server/data/low-carb/*
 .idea
