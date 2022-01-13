@@ -1,3 +1,4 @@
+require("dotenv").config()
 const express = require('express')
 const HTMLParser = require('node-html-parser');
 const axios = require("axios");
@@ -191,7 +192,20 @@ app.get('/', async function (req, res) {
     })
 })
 
-app.listen(42069)
+app.listen(process.env.PORT, function () {
+    console.log(`${process.env.PROJECT_NAME} is running at http://localhost:${process.env.PORT}`)
+    axios({
+        method:"post",
+        url: "http://localhost:42015/app/register",
+        data:{
+            project_name: process.env.PROJECT_NAME,
+            project_description: process.env.PROJECT_DESCRIPTION,
+            project_port: process.env.PORT
+        }
+    })
+        .then(response => Log.success(response.data.data))
+        .catch(error => Log.error(error.toString()))
+})
 
 //debug to console
 console.log('\napp started. http://localhost:42069');
